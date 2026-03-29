@@ -2,15 +2,17 @@ import os
 import pandas as pd
 from snowflake.sqlalchemy import URL
 from sqlalchemy import create_engine
+from dotenv import load_dotenv
 
+load_dotenv()
 
-# 1) Configure Snowflake connection
-SNOWFLAKE_ACCOUNT = "JJYQAVT-UR68042"
-SNOWFLAKE_USER = "HOAHO0918"
-SNOWFLAKE_PASSWORD = "Hibong1!1!1!1!"
-SNOWFLAKE_DATABASE = "SNOWFLAKE"
-SNOWFLAKE_SCHEMA = "ECOM_DW"
-SNOWFLAKE_WAREHOUSE = "COMPUTE_WH"
+# Read from .env
+SNOWFLAKE_ACCOUNT  = os.getenv("SNOWFLAKE_ACCOUNT")
+SNOWFLAKE_USER     = os.getenv("SNOWFLAKE_USER")
+SNOWFLAKE_PASSWORD = os.getenv("SNOWFLAKE_PASSWORD")
+SNOWFLAKE_DATABASE = os.getenv("SNOWFLAKE_DATABASE")
+SNOWFLAKE_SCHEMA   = os.getenv("SNOWFLAKE_SCHEMA")
+SNOWFLAKE_WAREHOUSE= os.getenv("SNOWFLAKE_WAREHOUSE")
 
 engine = create_engine(
     URL(
@@ -20,9 +22,7 @@ engine = create_engine(
         database=SNOWFLAKE_DATABASE,
         schema=SNOWFLAKE_SCHEMA,
         warehouse=SNOWFLAKE_WAREHOUSE,
-    )
-)
-
+    ))
 print("Connected to Snowflake.")
 
 
@@ -60,3 +60,11 @@ else:
     print("Row count mismatch — check joins / filters.")
 
 print("ETL completed.")
+
+df.to_sql(
+    "stg_shipping_raw",           # already exists
+    engine,
+    if_exists="replace",          # or "append"
+    schema="ECOM_DW",
+    index=False
+)
