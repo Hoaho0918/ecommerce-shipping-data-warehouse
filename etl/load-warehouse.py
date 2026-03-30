@@ -40,7 +40,7 @@ print("Columns:", df.columns.tolist())
 df.to_sql(
     "stg_shipping_raw",
     engine,
-    if_exists="replace",   # or "append" for incremental
+    if_exists="replace",
     schema=SNOWFLAKE_SCHEMA,
     index=False
 )
@@ -48,7 +48,7 @@ print("Loaded raw data into stg_shipping_raw.")
 
 
 # 4) Validation (fact_shipments vs CSV)
-print("\n--- Validating load ---")
+print("Validating load")
 
 df_fact = pd.read_sql("SELECT * FROM fact_shipments", con=engine)
 print("Source rows (CSV):", df.shape[0])
@@ -62,9 +62,9 @@ else:
 print("ETL completed.")
 
 df.to_sql(
-    "stg_shipping_raw",           # already exists
+    "stg_shipping_raw",   
     engine,
-    if_exists="replace",          # or "append"
+    if_exists="replace",
     schema="ECOM_DW",
     index=False
 )
