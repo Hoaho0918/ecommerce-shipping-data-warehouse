@@ -141,20 +141,3 @@ The dataset contains approximately **11,000 records** and these 12 source fields
 | `Discount_offered` | Discount percentage |
 | `Weight_in_gms` | Product weight in grams |
 | `Reached.on.Time_Y.N` | Source delivery-outcome indicator |
-
-### Delivery Outcome Mapping
-
-The warehouse derives `is_on_time` from the source delivery indicator:
-
-| Source value | `is_on_time` |
-|---:|---|
-| `0` | `TRUE` |
-| `1` | `FALSE` |
-
-```sql
-CASE
-    WHEN s.reached_on_time_yn = 0 THEN TRUE
-    WHEN s.reached_on_time_yn = 1 THEN FALSE
-    ELSE NULL
-END AS is_on_time
-```
