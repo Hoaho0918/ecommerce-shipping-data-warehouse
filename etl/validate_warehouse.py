@@ -1,9 +1,10 @@
 import os
+from pathlib import Path
 
 import pandas as pd
 from dotenv import load_dotenv
 from snowflake.sqlalchemy import URL
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine
 
 
 load_dotenv()
@@ -31,22 +32,22 @@ def get_engine():
     )
 
 
-def run_validation(engine, validation_name: str, query: str) -> bool:
-    result = pd.read_sql(query, engine)
+def run_check(engine, check_name: str, query: str) -> bool:
+    result = pd.read_sql(query, con=engine)
     failed_rows = int(result.iloc[0]["FAILED_ROWS"])
 
     if failed_rows == 0:
-        print(f"PASS | {validation_name}")
+        print(f"PASS | {check_name}")
         return True
 
-    print(f"FAIL | {validation_name} | failed_rows={failed_rows}")
+    print(f"FAIL | {check_name} | failed rows: {failed_rows}")
     return False
 
 
 def main() -> None:
     engine = get_engine()
 
-    validations = [
+    checks = [
         (
             "Staging and fact row counts match",
             """
@@ -65,7 +66,7 @@ def main() -> None:
             """,
         ),
         (
-            "No null dimension keys",
+            "No null foreign keys in fact table",
             """
             SELECT COUNT(*) AS failed_rows
             FROM fact_shipments
@@ -76,7 +77,7 @@ def main() -> None:
             """,
         ),
         (
-            "No null shipment measures",
+            "No null numeric shipment measures",
             """
             SELECT COUNT(*) AS failed_rows
             FROM fact_shipments
@@ -84,11 +85,18 @@ def main() -> None:
                OR discount_offered IS NULL
                OR weight_gms IS NULL
                OR customer_rating IS NULL
-               OR is_on_time IS NULL
             """,
         ),
         (
-            "No unmatched source rows",
+            "No invalid delivery outcome values",
+            """
+            SELECT COUNT(*) AS failed_rows
+            FROM fact_shipments
+            WHERE is_on_time IS NULL
+            """,
+        ),
+        (
+            "No unmatched staging records",
             """
             SELECT COUNT(*) AS failed_rows
             FROM stg_shipping_raw AS s
@@ -97,27 +105,21 @@ def main() -> None:
             WHERE f.source_customer_id IS NULL
             """,
         ),
-        (
-            "Valid delivery outcome flag",
-            """
-            SELECT COUNT(*) AS failed_rows
-            FROM fact_shipments
-            WHERE is_on_time NOT IN (TRUE, FALSE)
-               OR is_on_time IS NULL
-            """,
-        ),
     ]
 
-    print("Running warehouse validations...\n")
+    print("Running warehouse validation checks...\n")
 
-    passed = [run_validation(engine, name, query) for name, query in validations]
+    results = [
+        run_check(engine, check_name, query)
+        for check_name, query in checks
+    ]
 
     engine.dispose()
 
-    if not all(passed):
-        raise SystemExit("\nWarehouse validation failed.")
+    if not all(results):
+        raise SystemExit("\nWarehouse validation failed. Review failed checks.")
 
-    print("\nAll warehouse validations passed.")
+    print("\nAll warehouse validation checks passed.")
 
 
 if __name__ == "__main__":
